@@ -3,6 +3,6 @@ A hackathon where teams from top universities compete to analyze a problem and w
 
 [Check out the website for details](http://www.windward.net/code-war/)
 
-Team name: Guest
-Members: Michael Reiter, Kurt Dorflinger, Juan Carlos Gallegos, Nicholas Kobald
-Language used: Python
+- Team name: Guest
+- Members: Michael Reiter, Kurt Dorflinger, Juan Carlos Gallegos, Nicholas Kobald
+- Language used: Python
