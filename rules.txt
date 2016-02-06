@@ -1,0 +1,22 @@
+General rules:
+Each player draws 1 tiles and places on board, closest to 1a goes first
+Start with 6 tiles
+Start with $6000
+Buy up to 3 shares of stock per turn (doesn't include what you already gained that turn)
+Must place a tile on the board every turn
+If a tile shares a spot on the board with a tile that doesn't have a corporation, a corporation is founded.
+If tile is adjacent to an existing corporation, it grows the corporation.
+If tile combines two corporations, a merger is triggered. The larger corporation consumes the smaller one. If they are the same size, the active player decides.
+When a smaller company is bought out in a merger, the player with the most shares gets the majority stakeholder bonus, the player with the second most gets the minority shareholder bonus. All other players get to sell their at their current value, trade them in 2 for 1 for the larger company, or keep them for later. This is the only way to make money.
+If a company reaches size 11 or more, it is considered safe. Cannot be merged with a larger company. Two safe companies cannot merge.
+Can declare game is over on their turn if all companies are safe or one company on the board is size 41 or more.
+All companies remaining on the board are bought out and players sell all shares of active companies. Shares of inactive companies are worth 0.
+
+Player with the most money wins.
+
+Special powers:
+Buy 3 without paying money
+Buy 5 in a turn instead of 3
+3 trades where you trade 2 shares for 1
+Take 5 tiles
+Play 4 tiles

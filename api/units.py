@@ -1,222 +1,142 @@
-"""
-Module units: classes, functions and constants for working with players,
-passengers, and their tokens.
+class GameMap(object):
+    def __init__(self, x=0, y=0, element=None):
+        self.height = y
+        self.width = x
+        self.tiles = matrix = [[MapTile(MapTile.UNDEVELOPED)] * self.width for i in range(self.height)]
+        if element is not None:
+            self.fromXml(element)
 
-Created on January 15, 2013
+    def fromXml(self, element):
+        self.y = element.attrib.get('height')
+        self.x = element.attrib.get('width')
+        self.tiles = []
+        for row in element:
+            string = row.text
+            self.tiles.append([MapTile(tile) for tile in string.split(';') if tile is not ''])
+        
 
-@author: Windward Studios, Inc. (www.windward.net).
+    def is_tile_undeveloped(self, tile):
+        return tile.Type == MapTile.UNDEVELOPED
 
-No copyright claimed - do anything you want with this code.
-"""
+    def is_tile_unplayable(self, tile):
+        return tile.Type is not MapTile.UNDEVELOPED and tile.Type is MapTile.UNPLAYABLE_NO_AVAIL_CHAINS
 
-from xml.etree import ElementTree as ET
-import debug
+    def __str__(self):
+        return "{}*{} map".format(self.width, self.height)
 
-STATUS = ("UPDATE", "NO_PATH", "PASSENGER_ABANDONED", "PASSENGER_DELIVERED",
-          "PASSENGER_DELIVERED_AND_PICKED_UP", "PASSENGER_REFUSED",
-          "PASSENGER_PICKED_UP", "PASSENGER_NO_ACTION")
-"""
-Current status of the player:
-UPDATE: Called ever N ticks to update the AI with the game status.
-NO_PATH: The car has no path.
-PASSENGER_ABANDONED: The passenger was abandoned, no passenger was picked up.
-PASSENGER_DELIVERED: The passenger was delivered, no passenger was picked up.
-PASSENGER_DELIVERED_AND_PICKED_UP: The passenger was delivered or abandoned, a new passenger was picked up.
-PASSENGER_REFUSED: The passenger refused to exit at the bus stop because an enemy was there.
-PASSENGER_PICKED_UP: A passenger was picked up. There was no passenger to deliver.
-PASSENGER_NO_ACTION: At a bus stop, nothing happened (no drop off, no pick up).
 
-"""
+class HotelChain(object):
+    def __init__(self, element):
+        if element is None:
+            print "Error, HotelChain element is none"
+        self.name = element.get('name')
+        self.start_price = int(element.get('start-price'))
+        self.num_tiles = int(element.get('num-tiles'))
+        self.is_active = bool(element.get('is-active'))
+        self.is_safe = bool(element.get('is-safe'))
+        if element.find('owners') is not None:
+            self.owners = [StockOwner(owner.get('guid'), owner.get('num-shares')) for owner in element.find('owners')]
+        if element.find('first-majority') is not None:
+            self.first_majority_owners = [StockOwner(owner.get('guid'), owner.get('num-shares')) for owner in
+                                          element.find('first-majority')]
+        if element.find('second-majority') is not None:
+            self.second_majority_owners = [StockOwner(owner.get('guid'), owner.get('num-shares')) for owner in
+                                           element.find('second-majority')]
+        self.stock_price = int(element.get('stock-price'))
+        self.first_majority_bonus = int(element.get('first-majority'))
+        self.second_majority_bonus = int(element.get('second-majority'))
+        self.num_available_shares = int(element.get('num-avail-shares'))
+
+
+    def __str__(self):
+        return "HotelChain {}".format(self.name)
+
+
+class HotelStock(object):
+    def __init__(self, chain, num_shares):
+        self.chain = chain
+        self.num_shares = num_shares
+
+    def __str__(self):
+        return "Stock for chain {} has {} shares".format(self.chain, self.num_shares)
+
+
+class MapTile(object):
+    UNDEVELOPED = '1'
+    HOTEL = '2'
+    SINGLE = '3'
+    UNPLAYABLE_MERGE_SAFE = '4'
+    UNPLAYABLE_NO_AVAIL_CHAINS = '5'
+
+    def __init__(self, type, hotel=None, element=None):
+        self.hotel = hotel
+        self.type = type
+        if type is None and hotel is None:
+            self.type = MapTile.UNDEVELOPED
+
+    def __str__(self):
+        return "Hotel {}, Tile: {}".format(self.hotel, self.type)
 
 
 class Player(object):
-    """Class for representing a player in the game."""
-    
-    def __init__(self, element, pickup=[], passes=[], score=0):
-        """Create a player instance from the given XML Element.
+    def __init__(self, element):
+        if element is not None:
+            self.cash = int(element.get('cash'))
+            self.guid = element.get('guid')
+            self.name = element.get('name')
+            self.score = int(element.get('score'))
+            self.stock = []
+            #print ElementTree.tostring(element,encoding='utf8', method='xml')
+            if element.find('tiles') is not None:
+                self.tiles = [PlayerTile(elementString=tile) for tile in element.find('tiles').text.split(';') if
+                              tile is not None and tile is not '']
+            if element.find('powers') is not None:
+                self.powers = [SpecialPowers(int(power)) for power in element.find('powers').text.split(';') if
+                               power is not '']
+            if element.find('scoreboard') is not None:
+                self.scoreboard = [score for score in element.find('scoreboard').text.split(';')]
+            if element.find('stock') is not None:
+                for stock in element.find('stock').text.split(';'):
+                    if stock is not '':
+                        hotel_stock = HotelStock(stock.split(':')[0], int(stock.split(':')[1]))
+                        self.stock.append(hotel_stock)
+def __str__(self):
+    return "Player {}:   Score - {}".format(self.name, self.score)
 
-        Initialize the following instance variables:
-        guid -- A unique string identifier for this player. This string will remain
-            constant throughout the game (while the Player objects passed will change
-            on every call).
-        name -- The name of this player.
-        pickup -- List of who to pick up at the next bus stop. Can be empty and
-            can also only list people not at the next bus stop. This may be
-            wrong after a pick-up occurs as all we get is a count. This is
-            updated with the most recent list sent to the server.
-        passengersDelivered -- The passengers delivered so far (this game).
-        limo -- The player's limo.
-        score -- The score for this player (this game, not across all games so far).
 
-        """
-        if isinstance(element, basestring):
-            element = ET.XML(element)
-        self.guid = element.get('guid')
-        self.name = element.get('name')
-        self.limo = Limo( (int(element.get('limo-x')), int(element.get('limo-y'))),
-                           int(element.get('limo-angle')))
-        self.pickup = pickup if pickup else []
-        self.passengersDelivered = passes if passes else []
-        self.score = score
-
-    def __repr__(self):
-        return ("Player('" +
-                '<player guid="%s" name=%r limo-x="%r" limo-y="%r" limo-angle="%r">' %
-                (self.guid, self.name, self.limo.tilePosition[0], self.limo.tilePosition[1], self.limo.angle) +
-                "', %r, %r, %r)" % (self.pickup, self.passengersDelivered, self.score))
+class PlayerTile(object):
+    def __init__(self, x=0, y=0, elementString=None):
+        if elementString is None:
+            self.x = x
+            self.y = y
+        else:
+            self.x = int(elementString.split(':')[0])
+            self.y = int(elementString.split(':')[1])
 
     def __str__(self):
-        return "%s; numDelivered:%r" % (self.name, len(self.passengersDelivered))
+        return "PlayerTile at ({},{})".format(self.x, self.y)
 
-    def __eq__(self, other):
-        if isinstance(other, Player) and other.guid == self.guid:
-            return True
-        else:
-            return False
 
-    def __hash__(self):
-        return hash('Player %s (%r)' % (self.name, self.guid))
+class SpecialPowers(object):
+    FREE_3_STOCK = '1'
+    BUY_5_STOCK = '2'
+    TRADE_2_STOCK = '3'
+    DRAW_5_TILES = '4'
+    PLACE_4_TILES = '5'
+    NONE = '0'
 
-class Limo(object):
-    """A player's limo - holds a single passenger."""
-    def __init__(self, tilePosition, angle, path=[], passenger=None):
-        """tilePosition -- The location in tile units of the center of the vehicle.
-        angle -- the angle this unit is facing (an int from 0 to 359; 0 is
-            North and 90 is East.
-        path -- Only set for the AI's own limo - the number of tiles
-            remaining in the limo's path. This may be wrong after movement
-            as all we get is a count. This is updated witht the most recent
-            list sent to the server.
-        passenger -- The passenger in this limo. None if there is no passenger.
-
-        """
-        self.tilePosition = tilePosition
-        self.angle = angle
-        self.path = path if path else []
-        self.passenger = passenger
+    def __init__(self, card):
+        self.card = card
 
     def __str__(self):
-        if self.passenger is not None:
-            return ("%s:%s; Passenger:%s; Dest:%s; PathLength:%s" %
-                    (self.tilePosition, self.angle, self.passenger.name,
-                    self.passenger.destination, len(self.path)))
-        else:
-            return "%s:%s; Passenger:{none}" % (self.tilePosition, self.angle)
+        return "Power {}".format(self.card)
 
-class Passenger(object):
-    """A company CEO."""
-    def __init__(self, element, companies):
-        """Create a passenger from XML and a list of Company objects.
 
-        name -- The name of this passenger.
-        pointsDelivered -- The number of points a player get for delivering this passenger.
-        car -- The limo the passenger is currently in. None if they are not in a limo.
-        lobby -- The bus stop the passenger is currently waiting in. None if they
-            are in a limo or if they have arrived at their final destination.
-        destination -- The company the passenger wishes to go to next. This is
-            valid both at a bus stop and in a car. It is None of they have been
-            delivered to their final destination.
-        route -- The remaining companies the passenger wishes to go to after
-            destination, in order. This does not include their current destination.
-        enemies -- List of other Passenger objects. If any of them are at a bus
-            stop, this passenger will not exit the limo at that stop. If a
-            passenger at the bus stop has this passenger as an enemy, this
-            passenger can still exit the car.
+class StockOwner(object):
+    def __init__(self, num_shares, owner):
+        self.num_shares = num_shares
+        self.owner = owner
 
-        """
-        self.name = element.get('name')
-        self.pointsDelivered = int(element.get('points-delivered'))
-        lobby = element.get('lobby')
-        self.lobby = ([c for c in companies if c.name == lobby][0]
-                      if lobby is not None else None)
-        dest = element.get('destination')
-        self.destination = ([c for c in companies if c.name == dest][0]
-                            if dest is not None else None)
-        route = []
-        for routeElement in element.findall('route'):
-            debug.trap()
-            route.append([c for c in companies if c.name == routeElement.text][0])
-        self.route = route
-        self.enemies = []
-        self.car = None
-
-    def __repr__(self):
-        return self.name
-
-def playersFromXml (element):
-    """Called on setup to create initial list of players."""
-    return [Player(p) for p in element.findall('player')]
-
-def updatePlayersFromXml (players, passengers, element):
-    """Update a list of Player objects with passengers from the given XML."""
-    for playerElement in element.findall('player'):
-        player = [p for p in players if p.guid == playerElement.get('guid')][0]
-        player.score = float(playerElement.get('score'))
-        # car location
-        player.limo.tilePosition = ( int(playerElement.get('limo-x')),
-                                     int(playerElement.get('limo-y')) )
-        player.limo.angle = int(playerElement.get('limo-angle'))
-        # see if we now have a passenger
-        psgrName = playerElement.get('passenger')
-        if psgrName is not None:
-            passenger = [p for p in passengers if p.name == psgrName][0]
-            player.limo.passenger = passenger
-            passenger.car = player.limo
-        else:
-            player.limo.passenger = None
-        # add most recent delivery if this is the first time we're told.
-        psgrName = playerElement.get('last-delivered')
-        if psgrName is not None:
-            passenger = [p for p in passengers if p.name == psgrName][0]
-            if passenger not in player.passengersDelivered:
-                player.passengersDelivered.append(passenger)
-
-def passengersFromXml (element, companies):
-    elements = element.findall('passenger')
-    passengers = [Passenger(psgr, companies) for psgr in elements]
-    # need to now assign enemies - needed all Passenger objects created first
-    for elemOn in elements:
-        psgr = [p for p in passengers if p.name == elemOn.get('name')][0]
-        psgr.enemies = [filter(lambda p: p.name == e.text, passengers)[0]
-                        for e in elemOn.findall('enemy')]
-    # set if they're in a lobby
-    for psgr in passengers:
-        if psgr.lobby is not None:
-            company = [c for c in companies if c == psgr.lobby][0]
-            company.passengers.append(psgr)
-    return passengers
-
-def updatePassengersFromXml (passengers, companies, element):
-    for psgrElement in element.findall('passenger'):
-        #debug.bugprint('updatePassengers XML:', ET.tostring(psgrElement))
-        #debug.bugprint('  passengers: ' + str(passengers))
-        passenger = [p for p in passengers if p.name == psgrElement.get('name')][0]
-        dest = psgrElement.get('destination')
-        if dest is not None:
-            passenger.destination = [c for c in companies if c.name == dest][0]
-            # remove from the route
-            if passenger.destination in passenger.route:
-                passenger.route.remove(passenger.destination)
-        # set props based on waiting, travelling, done
-        switch = psgrElement.get('status')
-		
-        if   switch == "lobby":
-			cmpny = [c for c in companies if c.name == psgrElement.get('lobby')][0]
-			if passenger.lobby != cmpny:
-				passenger.lobby = cmpny
-				if not(passenger in passenger.lobby.passengers):
-								passenger.lobby.passengers.append(passenger)
-			passenger.car = None
-			
-        elif switch == "travelling":
-			if passenger.lobby != None:
-				passenger.lobby.passengers.remove(passenger)
-				passenger.lobby = None
-            # passenger.car set in Player update
-        elif switch == "done":
-            debug.trap()
-            passenger.destination = None
-            passenger.lobby = None
-            passenger.car = None
-        else:
-            raise TypeError("Invalid passenger status in XML: %r" % switch)
+    def __str__(self):
+        return "Owner {} has {} shares".format(self.owner, self.num_shares)
+        

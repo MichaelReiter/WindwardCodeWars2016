@@ -1,11 +1,17 @@
 """
-  ----------------------------------------------------------------------------
-  "THE BEER-WARE LICENSE"
-  As long as you retain this notice you can do whatever you want with this
-  stuff. If you meet an employee from Windward some day, and you think this
-  stuff is worth it, you can buy them a beer in return. Windward Studios
-  ----------------------------------------------------------------------------
-  """
+Module debug: various debugging utilities.  Set DEBUG=False to disable them.
+
+trap(message, breakOn) -- used to set code coverage breakpoints in the code.
+bugprint(message) -- same as print, but only works in DEBUG mode.
+printrap(message, breakOn) -- print a message (always), then call trap.
+bugprintrap(message, breakOn) -- print a message and call trap (in DEBUG mode).
+
+Created on Dec 4, 2011
+
+@author: malcolmm
+
+No copyright claimed - do anything you want with this code.
+"""
 
 from __future__ import print_function
 import time
@@ -13,18 +19,14 @@ import time
 #To turn off these utilities set this to False
 DEBUG = True
 
-
 def startTime():
     return time.clock()
-
 
 def timeElapsed(since):
     return time.clock() - since
 
-
 class Trap(UserWarning):
     pass
-
 
 def trap(message="IT'S A TRAP!", breakOn=True):
     '''Break into the debugger if breakOn evaluates to True. 
@@ -37,19 +39,17 @@ def trap(message="IT'S A TRAP!", breakOn=True):
     exceptions.**
     
     '''
-    if DEBUG and breakOn:
+    if DEBUG and breakOn: 
         try:
             raise Trap(message)
         except Trap:
             pass
 
-
 def bugprint(*args, **kwargs):
     '''Same as built-in print, but only works in DEBUG mode.'''
     if DEBUG:
         print(*args, **kwargs)
-
-
+        
 def printrap(message, breakOn=True):
     '''Print a message to the console (always), and call trap in DEBUG mode.
     
@@ -59,8 +59,7 @@ def printrap(message, breakOn=True):
     print(message)
     if DEBUG:
         trap(message, breakOn)
-
-
+    
 def bugprintrap(message, breakOn=True):
     '''Print a message to the console and call trap (in DEBUG mode only).
     

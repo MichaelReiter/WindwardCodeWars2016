@@ -1,29 +1,36 @@
 """
-Created on January 15, 2013
+  ----------------------------------------------------------------------------
+  "THE BEER-WARE LICENSE"
+  As long as you retain this notice you can do whatever you want with this
+  stuff. If you meet an employee from Windward some day, and you think this
+  stuff is worth it, you can buy them a beer in return. Windward Studios
+  ----------------------------------------------------------------------------
+  """
 
-@author: Windward Studios, Inc. (www.windward.net).
+## first_or_default = next((x for x in lst if ...), None)
 
-No copyright claimed - do anything you want with this code.
-"""
-
-from __future__ import print_function
-from __future__ import division
-
-import sys, time, base64, traceback, threading
+import sys
+import base64
+import traceback
+import threading
+import time
 from xml.etree import ElementTree as ET
 
-import tcpClient, myPlayerBrain, api
-from debug import trap, printrap, bugprint
+import api.units as lib
+import tcpClient
+import myPlayerBrain
+from debug import printrap
 
-DEFAULT_ADDRESS = "127.0.0.1" #local machine
+#local machine
+DEFAULT_ADDRESS = "127.0.0.1"
 
 
 class Framework(object):
     def __init__(self, args):
         if len(args) >= 2:
-            self._brain = myPlayerBrain.MyPlayerBrain(args[1])
+            self.brain = myPlayerBrain.MyPlayerBrain(args[1])
         else:
-            self._brain = myPlayerBrain.MyPlayerBrain()
+            self.brain = myPlayerBrain.MyPlayerBrain()
         self.ipAddress = args[0] if len(args) >= 1 else DEFAULT_ADDRESS
         self.guid = None
 
@@ -32,7 +39,7 @@ class Framework(object):
         self.lock = threading.Lock()
 
         print("Connecting to server '%s' for user: %r, school: %r" %
-              (self.ipAddress, self._brain.name, myPlayerBrain.SCHOOL))
+              (self.ipAddress, self.brain.name, myPlayerBrain.SCHOOL))
 
     def _run(self):
         print("starting...")
@@ -45,7 +52,7 @@ class Framework(object):
         print('enter "exit" to exit program')
         try:
             while True:
-                line = raw_input()
+                line = input()
                 if line == 'exit':
                     break
         except EOFError:
@@ -54,93 +61,101 @@ class Framework(object):
             self.client.close()
 
     def statusMessage(self, message):
-        trap()
         print(message)
+
+    def send_xml(self, message):
+        #print ET.tostring(message) # uncomment to see all sent messages
+        self.client.sendMessage(ET.tostring(message))
 
     def incomingMessage(self, message):
         try:
             startTime = time.clock()
             # get the XML - we assume we always get a valid message from the server.
+            #print ET.tostring(xml,encoding='utf8', method='xml')
+
             xml = ET.XML(message)
-
             name = xml.tag
-            if name == 'setup':
-                print ("Received setup message")
-                #TODO: logging
-                players = api.units.playersFromXml(xml.find("players"))
-                companies = api.map.companiesFromXml(xml.find("companies"))
-                passengers = api.units.passengersFromXml(xml.find("passengers"), companies)
-                map = api.map.Map(xml.find("map"), companies)
-                self.guid = xml.attrib["my-guid"]
-                me2 = [p for p in players if p.guid == self.guid][0]
+            printrap("Received message of type: " + name)
+            self.guid = xml.get('my-guid')
+            map = lib.GameMap(element=xml.find('map')) # need to handle the actual column/rows
+            players = [lib.Player(player) for player in xml.find('players')]
+            hotels = [lib.HotelChain(hotel) for hotel in xml.find('hotels')]
+            #fix stock pointers to right place...
 
-                self._brain.setup(map, me2, players, companies, passengers, self.client)
+            #pdb.set_trace()
+            me = None
+            msgid = xml.get('msg-id')
+            reply = None
+            for player in players:
+                if player.guid == self.guid:
+                    me = player
+                    print "found matching guid..."
+                elif player.name == self.brain.name:
+                    me = player
+                    print "no matching guid, but found matching name... "
 
-                ###self.client.sendMessage(ET.tostring(doc))
-            elif name == 'status':
-                # may be here because re-started and got this message before
-                # the re-send of setup
-                if self.guid is None or len(self.guid) == 0:
-                    trap()
-                    return
+            if name == 'query-card':
+                move = self.brain.QuerySpecialPowersBeforeTurn(map, me, hotels, players)
+                reply = ET.Element('reply', {'cmd': name, 'msg-id': msgid, 'card': move})
 
-                status = xml.attrib["status"]
-                attr = xml.attrib["player-guid"]
-                guid = attr if attr is not None else self.guid
+            elif name == 'query-tile-purchase':
+                move = self.brain.QueryTileAndPurchase(map, me, hotels, players)
+                reply = ET.Element('reply', {'cmd': name, 'msg-id': msgid})
+                if move is not None:
+                    if move.Tile is not None:
+                        reply.set("tile-x", str(move.Tile.x))
+                        reply.set("tile-y", str(move.Tile.y))
+                    if move.CreatedHotel is not None:
+                        reply.set("created-hotel",move.CreatedHotel.name)
+                    if move.MergeSurvivor is not None:
+                        reply.set("merge-survivor", move.MergeSurvivor.name)
 
-                brain = self._brain
+                    trade_string = ''.join(["{}:{};".format(stock.Trade, stock.Get) for stock in move.Trade])
+                    if len(trade_string) > 0:
+                        reply.set("trade", trade_string)
 
-                if self.lock.acquire(False):
-                    try:
-                        api.units.updatePlayersFromXml(brain.players,
-                                                       brain.passengers,
-                                                       xml.find("players"))
-                        api.units.updatePassengersFromXml(brain.passengers,
-                                                          brain.companies,
-                                                          xml.find("passengers"))
-                        # update my path & pick-up
-                        playerStatus = [p for p in brain.players
-                                        if p.guid == guid][0]
-                        elem = xml.find("path")
-                        #bugprint('framework.py: path element ->', ET.tostring(elem))
-                        if elem is not None and elem.text is not None:
-                            path = [item.strip() for item in elem.text.split(';')
-                                    if len(item.strip()) > 0]
-                            del playerStatus.limo.path[:]
-                            for stepOn in path:
-                                pos = stepOn.index(',')
-                                playerStatus.limo.path.append( (int(stepOn[:pos]),
-                                                                int(stepOn[pos+1:])) )
+                    buy_string = ''.join(["{}:{};".format(stock.chain.name, stock.num_shares) for stock in move.Buy])
+                    if len(buy_string) > 0:
+                        reply.set("buy", buy_string)
 
-                        elem = xml.find("pick-up")
-                        #bugprint('framework.py: pick-up element ->', ET.tostring(elem))
-                        if elem is not None and elem.text is not None:
-                            names = [item.strip() for item in elem.text.split(';')
-                                     if len(item) > 0]
-                            playerStatus.pickup = [p for p in brain.passengers if p.name in names]
+            elif name == 'query-tile':
+                move = self.brain.QueryTileOnly(map, me, hotels, players)
+                reply = ET.Element('reply', {'cmd': name, 'msg-id': msgid})
+                if move is not None:
+                    if move.Tile is not None:
+                        reply.set("tile-x", str(move.Tile.x))
+                        reply.set("tile-y", str(move.Tile.y))
+                    if move.CreatedHotel is not None:
+                        reply.set("created-hotel",move.CreatedHotel.name)
+                    if move.MergeSurvivor is not None:
+                        reply.set("merge-survivor", move.MergeSurvivor.name)
 
-                        # pass in to generate new orders
-                        brain.gameStatus(status, playerStatus, brain.players, brain.passengers)
-                    #except Exception as e:
-                    #    raise e
-                    finally:
-                        self.lock.release()
-                else:
-                    # failed to acquire the lock - we're throwing this message away.
-                    trap()
-                    return
+            elif name == 'query-merge':
+                defunct_name = xml.get('defunct')
+                survivor_name = xml.get('survivor')
+                defunct = next((hotel for hotel in hotels if hotel.name == defunct_name),None)
+                survivor = next((hotel for hotel in hotels if hotel.name == survivor_name),None)
+                move = self.brain.QueryMergeStock(map, me, hotels, players, survivor, defunct)
+                reply = ET.Element('reply', {'cmd': name, 'msg-id': msgid})
+
+                if move is not None:
+                    reply.set( "keep",  str(move.Keep))
+                    reply.set( "sell",  str(move.Sell))
+                    reply.set( "trade", str(move.Trade))
+
+            elif name == 'setup':
+                self.brain.Setup(map, me, hotels, players)
+                reply = ET.Element('ready')
+
             elif name == 'exit':
                 print("Received exit message")
-                #TODO: logging
                 sys.exit(0)
             else:
                 printrap("ERROR: bad message (XML) from server - root node %r" % name)
-
+            self.send_xml(reply)
             turnTime = time.clock() - startTime
             prefix = '' if turnTime < 0.8 else "WARNING - "
-            prefix = "!DANGER! - " if turnTime >= 1.2 else prefix
-            print(prefix + "turn took %r seconds" % turnTime)
-            #TODO: logging
+            print(prefix + "turn took %r seconds" % turnTime)#Enable this to see turn speed
         except Exception as e:
             traceback.print_exc()
             printrap("Error on incoming message.  Exception: %r" % e)
@@ -166,32 +181,16 @@ class Framework(object):
                 delay += .5
 
     def _connectToServer(self):
-        root = ET.Element('join', {'name':     self._brain.name,
-                                   'school':   myPlayerBrain.SCHOOL,
+        root = ET.Element('join', {'name': self.brain.name,
+                                   'school': myPlayerBrain.SCHOOL,
                                    'language': "Python"})
-        avatar = self._brain.avatar
+        avatar = self.brain.avatar
         if avatar is not None:
             av_el = ET.Element('avatar')
             av_el.text = base64.b64encode(avatar)
             root.append(av_el)
         self.client.sendMessage(ET.tostring(root))
 
-def sendOrders(brain, order, path, pickup):
-    """Used to communicate with the server. Do not change this method!"""
-    xml = ET.Element(order)
-    if len(path) > 0:
-        brain.me.limo.path = path # update our saved Player to match new settings
-        sb = [str(point[0]) + ',' + str(point[1]) + ';' for point in path]
-        elem = ET.Element('path')
-        elem.text = ''.join(sb)
-        xml.append(elem)
-    if len(pickup) > 0:
-        brain.me.pickup = pickup # update our saved Player to match new settings
-        sb = [psngr.name + ';' for psngr in pickup]
-        elem = ET.Element('pick-up')
-        elem.text = ''.join(sb)
-        xml.append(elem)
-    brain.client.sendMessage(ET.tostring(xml))
 
 if __name__ == '__main__':
     printrap(sys.argv[0], breakOn=not sys.argv[0].endswith("framework.py"))

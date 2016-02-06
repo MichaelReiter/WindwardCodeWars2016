@@ -16,4 +16,3 @@ map: classes, functions and constants for working with the game map and
     Company -- represents a company on the board (location and any passengers).
 
 """
-
