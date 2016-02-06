@@ -89,7 +89,13 @@ class MyPlayerBrain(object):
 
     def QueryMergeStock(self, map, me, hotelChains, players, survivor, defunct):
         myStock = next((stock for stock in me.stock if stock.chain == defunct.name), None)
-        return PlayerMerge(myStock.num_shares / 3, myStock.num_shares / 3, (myStock.num_shares + 2) / 3)
+        if defunct in me.stock:
+            print "Defunct stock: ", defunct.name
+            return PlayerMerge(myStock.num_shares / 2, 0, myStock.num_shares / 2)
+        else:
+            print "Non-defunct stock: ", defunct.name, "we are survivor: ", survivor in me.stock
+            return PlayerMerge(0, myStock.num_shares, 0)
+        #return PlayerMerge(myStock.num_shares / 3, myStock.num_shares / 3, (myStock.num_shares + 2) / 3)
 
     def checkAdjacentTile(self, map, me, i, j):
         #Possible outcomes: all empty, one+ single, one+ hotel
