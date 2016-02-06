@@ -10,10 +10,10 @@ from api.units import SpecialPowers
 
 
 def random_element(list):
-        if len(list) < 1:
-                print "random element from empty list? returning None..."
-                return None
-        return list[rand.randint(0, len(list) - 1)]
+    if len(list) < 1:
+        print "random element from empty list? returning None..."
+        return None
+    return list[rand.randint(0, len(list) - 1)]
 
 
 def chooseTileMove(create, expand, mergers, me, inactive):
@@ -35,4 +35,12 @@ def chooseTileMove(create, expand, mergers, me, inactive):
 
 
 def chooseStockPurchases(options, hotelChains):
-    return [lib.HotelStock(random_element(hotelChains), rand.randint(1, 4))]
+    return [lib.HotelStock(findLargestCompany(hotelChains), 3)]
+
+def findLargestCompany(hotelChains):
+    max = hotelChains[0]
+    for hotel in hotelChains:
+        if max.num_tiles < hotel.num_tiles:
+            max = hotel
+
+    return max
