@@ -85,41 +85,79 @@ class MyPlayerBrain(object):
         myStock = next((stock for stock in me.stock if stock.chain == defunct.name), None)
         return PlayerMerge(myStock.num_shares / 3, myStock.num_shares / 3, (myStock.num_shares + 2) / 3)
 
+    def checkAdjacentTile(self, map, me, i, j):
+        #Possible outcomes: all empty, one+ single, one+ hotel
+        empty = 0
+        single = 0
+        hotel = 0
+
+        merging = []
+        creating = []
+
+        #For every adjacent tile, check if it is either empty, single or hotel
+        if i > 0:
+            curr = map.tiles[i - 1][j]
+            if curr.Type == curr.SINGLE:
+                single += 1
+                creating.append(map.tiles[i - 1][j])
+            elif curr.Type == curr.HOTEL:
+                hotel += 1
+                merging.append((curr, curr.hotel))
+            elif curr.Type == curr.UNDEVELOPED:
+                empty += 1
+        if i < map.height:
+            curr = map.tiles[i + 1][j]
+            if curr.Type == curr.SINGLE:
+                single += 1
+                creating.append(map.tiles[i + 1][j])
+            elif curr.Type == curr.HOTEL:
+                hotel += 1
+                merging.append((curr, curr.hotel))
+            elif curr.Type == curr.UNDEVELOPED:
+                empty += 1
+        if j > 0:
+            curr = map.tiles[i][j - 1]
+            if curr.Type == curr.SINGLE:
+                single += 1
+                creating.append(map.tiles[i][j - 1])
+            elif curr.Type == curr.HOTEL:
+                hotel += 1
+                merging.append((curr, curr.hotel))
+            elif curr.Type == curr.UNDEVELOPED:
+                empty += 1
+        if j < map.width:
+            curr = map.tiles[i][j + 1]
+            if curr.Type == curr.SINGLE:
+                single += 1
+                creating.append(map.tiles[i][j + 1])
+            elif curr.Type == curr.HOTEL:
+                hotel += 1
+                merging.append((curr, curr.hotel))
+            elif curr.Type == curr.UNDEVELOPED:
+                empty += 1
+
+        if hotel > 0:
+            return [hotel + single, "hotel", merging]
+        elif single > 0:
+            return [single, "single", creating]
+        else:
+            return [0, "empty"]
+
     def chooseTileMove(self, map, me, hotelChains):
         create = []
         expand = []
+        mergers = []
+
         for i in xrange(map.height):
             for j in xrange(map.width):
-                #If the tile is a single tile
-                if map.tiles[i][j].Type == map.tiles[i][j].SINGLE:
-                    #Check around it to see if we can place a tile
-                    if i > 0:
-                        if map.tiles[i - 1][j] in me.tiles:
-                            create.append(map.tiles[i - 1][j])
-                    if i < map.height:
-                        if map.tiles[i + 1][j] in me.tiles:
-                            create.append(map.tiles[i + 1][j])
-                    if j > 0:
-                        if map.tiles[i][j - 1] in me.tiles:
-                            create.append(map.tiles[i][j - 1])
-                    if j < map.width:
-                        if map.tiles[i][j + 1] in me.tiles:
-                            create.append(map.tiles[i][j + 1])
-                #If the tile is a hotel
-                if map.tiles[i][j].Type == map.tiles[i][j].HOTEL:
-                    #Check around it to see if we can place a tile
-                    if i > 0:
-                        if map.tiles[i - 1][j] in me.tiles:
-                            expand.append(map.tiles[i - 1][j])
-                    if i < map.height:
-                        if map.tiles[i + 1][j] in me.tiles:
-                            expand.append(map.tiles[i + 1][j])
-                    if j > 0:
-                        if map.tiles[i][j - 1] in me.tiles:
-                            expand.append(map.tiles[i][j - 1])
-                    if j < map.width:
-                        if map.tiles[i][j + 1] in me.tiles:
-                            expand.append(map.tiles[i][j + 1])
+                if map.tiles[i][j] in me.tiles:
+                    result = self.checkAdjacentTile(map, me, i, j)
+                    if result[1] == "hotel":
+                        mergers.append([result, map.tiles[i][j], i, j])
+                    elif result[1] == "single":
+                        create.append([result, map.tiles[i][j], i, j])
+                    else:
+                        expand.append([map.tiles[i][j], i, j])
 
         #Determine which move you want to use here
         chosen = None
