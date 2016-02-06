@@ -107,7 +107,7 @@ class MyPlayerBrain(object):
                 merging.append((curr, curr.hotel))
             elif curr.Type == curr.UNDEVELOPED:
                 empty += 1
-        if i < map.height:
+        if i < map.height - 1:
             curr = map.tiles[i + 1][j]
             if curr.Type == curr.SINGLE:
                 single += 1
@@ -127,7 +127,7 @@ class MyPlayerBrain(object):
                 merging.append((curr, curr.hotel))
             elif curr.Type == curr.UNDEVELOPED:
                 empty += 1
-        if j < map.width:
+        if j < map.width - 1:
             curr = map.tiles[i][j + 1]
             if curr.Type == curr.SINGLE:
                 single += 1
@@ -171,6 +171,9 @@ class MyPlayerBrain(object):
             return random_element(me.tiles)
         else:
             return chosen
+
+    def chooseStockPurchases(self, me, hotelChains, stockCount):
+        return None
 
 
 class PlayerMerge(object):
