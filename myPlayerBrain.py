@@ -6,6 +6,8 @@ import random as rand
 import api.units as lib
 from api.units import SpecialPowers
 
+import logic
+
 NAME = "Team Guest"
 SCHOOL = "University of Victoria"
 
@@ -148,6 +150,9 @@ class MyPlayerBrain(object):
         expand = []
         mergers = []
 
+        # This populates lists for which moves will create a company,
+        # which moves will expand a company, and which moves will cause a merger.
+
         for i in xrange(map.height):
             for j in xrange(map.width):
                 if map.tiles[i][j] in me.tiles:
@@ -160,7 +165,7 @@ class MyPlayerBrain(object):
                         expand.append([map.tiles[i][j], i, j])
 
         #Determine which move you want to use here
-        chosen = None
+        chosen = logic.chooseTileMove(create, expand, mergers)
 
         if chosen is None:
             return random_element(me.tiles)
