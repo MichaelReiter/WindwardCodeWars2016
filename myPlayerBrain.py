@@ -37,11 +37,11 @@ class MyPlayerBrain(object):
                 avatar_str += line
             avatar = avatar_str
         except IOError:
-            avatar = None # avatar is optional
+            avatar = None   # avatar is optional
         self.avatar = avatar
 
     def Setup(self, map, me, hotelChains, players):
-        pass #any setup code...
+        pass  # any setup code...
 
     def QuerySpecialPowersBeforeTurn(self, map, me, hotelChains, players):
         if rand.randint(0, 29) == 1:

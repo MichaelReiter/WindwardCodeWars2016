@@ -77,9 +77,9 @@ class Framework(object):
             name = xml.tag
             printrap("Received message of type: " + name)
             self.guid = xml.get('my-guid')
-            map = lib.GameMap(element=xml.find('map')) # need to handle the actual column/rows
-            players = [lib.Player(player) for player in xml.find('players')]
             hotels = [lib.HotelChain(hotel) for hotel in xml.find('hotels')]
+            map = lib.GameMap(element=xml.find('map'), hotelChains=hotels) # need to handle the actual column/rows
+            players = [lib.Player(player) for player in xml.find('players')]
             #fix stock pointers to right place...
 
             #pdb.set_trace()
