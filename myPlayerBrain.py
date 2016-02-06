@@ -1,32 +1,29 @@
-"""
-Module myPlayerBrain: the sample Python AI.  Start with this project but write
-your own code as this is a very simplistic implementation of the AI.
+import random as rand
+import api.units as lib
+from api.units import SpecialPowers
 
-Created on January 15, 2013
-
-@author: Windward Studios, Inc. (www.windward.net).
-
-No copyright claimed - do anything you want with this code.
-"""
-
-import random
-import simpleAStar
-from framework import sendOrders
-from api import units, map
-from debug import printrap
-
-from xml.etree import ElementTree as ET
-
-NAME = "Guido van Rossum"
+NAME = "Anders Hejlsberg"
 SCHOOL = "Windward U."
 
+
+def random_element(list):
+    if len(list) < 1:
+        print "random element from empty list? returning None..."
+        return None
+    return list[rand.randint(0, len(list) - 1)]
+
+
 class MyPlayerBrain(object):
-    """The Python AI class.  This class must have the methods setup and gameStatus."""
-    def __init__(self, name=NAME):
-        self.name = name #The name of the player.
-        
-        #The player's avatar (looks in the same directory that this module is in).
-        #Must be a 32 x 32 PNG file.
+    """The Python AI class."""
+
+    def __init__(self):
+        self.name = NAME
+        self.school = SCHOOL
+        if NAME is "Anders Hejlsberg" or SCHOOL is "Windward U.":
+            print "Please enter your name and university at the top of MyPlayerBrain.py"
+
+            #The player's avatar (looks in the same directory that this module is in).
+            #Must be a 32 x 32 PNG file.
         try:
             avatar = open("MyAvatar.png", "rb")
             avatar_str = b''
@@ -36,104 +33,74 @@ class MyPlayerBrain(object):
         except IOError:
             avatar = None # avatar is optional
         self.avatar = avatar
-    
-    def setup(self, gMap, me, allPlayers, companies, passengers, client):
-        """
-        Called at the start of the game; initializes instance variables.
 
-        gMap -- The game map.
-        me -- Your Player object.
-        allPlayers -- List of all Player objects (including you).
-        companies -- The companies on the map.
-        passengers -- The passengers that need a lift.
-        client -- TcpClient to use to send orders to the server.
-        
-        """
-        self.gameMap = gMap
-        self.players = allPlayers
-        self.me = me
-        self.companies = companies
-        self.passengers = passengers
-        self.client = client
+    def Setup(self, map, me, hotelChains, players):
+        pass #any setup code...
 
-        self.pickup = pickup = self.allPickups(me, passengers)
+    def QuerySpecialPowersBeforeTurn(self, map, me, hotelChains, players):
+        if rand.randint(0, 29) == 1:
+            return SpecialPowers.DRAW_5_TILES
+        if rand.randint(0, 29) == 1:
+            return SpecialPowers.PLACE_4_TILES
+        return SpecialPowers.NONE
 
-        # get the path from where we are to the dest.
-        path = self.calculatePathPlus1(me, pickup[0].lobby.busStop)
-        sendOrders(self, "ready", path, pickup)
+    def QueryTileOnly(self, map, me, hotelChains, players):
+        tile = random_element(me.tiles)
+        createdHotel = next((hotel for hotel in hotelChains if not hotel.is_active), None)
+        mergeSurvivor = next((hotel for hotel in hotelChains if hotel.is_active), None)
+        return PlayerPlayTile(tile, createdHotel, mergeSurvivor)
 
-    def gameStatus(self, status, playerStatus, players, passengers):
-        """
-        Called to send an update message to this A.I.  We do NOT have to send a response.
 
-        status -- The status message.
-        playerStatus -- The player this status is about. THIS MAY NOT BE YOU.
-        players -- The status of all players.
-        passengers -- The status of all passengers.
+    def QueryTileAndPurchase(self, map, me, hotelChains, players):
+        inactive = next((hotel for hotel in hotelChains if not hotel.is_active), None)
+        turn = PlayerTurn(tile=random_element(me.tiles), created_hotel=inactive, merge_survivor=inactive)
+        turn.Buy.append(lib.HotelStock(random_element(hotelChains), rand.randint(1, 3)))
+        turn.Buy.append(lib.HotelStock(random_element(hotelChains), rand.randint(1, 3)))
 
-        """
+        if rand.randint(0, 20) is not 1:
+            return turn
+        temp_rand = rand.randint(0, 2)
+        if temp_rand is 0:
+            turn.Card = SpecialPowers.BUY_5_STOCK
+            turn.Buy.append(lib.HotelStock(random_element(hotelChains), 3))
+            return turn
+        elif temp_rand is 1:
+            turn.Card = SpecialPowers.FREE_3_STOCK
+            return turn
+        else:
+            if (len(me.stock) > 0):
+                turn.Card = SpecialPowers.TRADE_2_STOCK
+                turn.Trade.append(TradeStock(random_element(me.stock).chain, random_element(hotelChains)))
+                return turn
 
-        # bugbug - Framework.cs updates the object's in this object's Players,
-        # Passengers, and Companies lists. This works fine as long as this app
-        # is single threaded. However, if you create worker thread(s) or
-        # respond to multiple status messages simultaneously then you need to
-        # split these out and synchronize access to the saved list objects.
+    def QueryMergeStock(self, map, me, hotelChains, players, survivor, defunct):
+        myStock = next((stock for stock in me.stock if stock.chain == defunct.name), None)
+        return PlayerMerge(myStock.num_shares / 3, myStock.num_shares / 3, (myStock.num_shares + 2) / 3)
 
-        try:
-            # bugbug - we return if not us because the below code is only for
-            # when we need a new path or our limo hits a bus stop. If you want
-            # to act on other players arriving at bus stops, you need to
-            # remove this. But make sure you use self.me, not playerStatus for
-            # the Player you are updating (particularly to determine what tile
-            # to start your path from).
-            if playerStatus != self.me:
-                return
 
-            ptDest = None
-            pickup = []
-            if    status == "UPDATE":
-                return
-            elif (status == "PASSENGER_NO_ACTION" or
-                  status == "NO_PATH"):
-                if playerStatus.limo.passenger is None:
-                    pickup = self.allPickups(playerStatus, passengers)
-                    ptDest = pickup[0].lobby.busStop
-                else:
-                    ptDest = playerStatus.limo.passenger.destination.busStop
-            elif (status == "PASSENGER_DELIVERED" or
-                  status == "PASSENGER_ABANDONED"):
-                pickup = self.allPickups(playerStatus, passengers)
-                ptDest = pickup[0].lobby.busStop
-            elif  status == "PASSENGER_REFUSED":
-                ptDest = random.choice(filter(lambda c: c != playerStatus.limo.passenger.destination,
-                    self.companies)).busStop
-            elif (status == "PASSENGER_DELIVERED_AND_PICKED_UP" or
-                  status == "PASSENGER_PICKED_UP"):
-                pickup = self.allPickups(playerStatus, passengers)
-                ptDest = playerStatus.limo.passenger.destination.busStop
-            else:
-                raise TypeError("unknown status %r", status)
+class PlayerMerge(object):
+    def __init__(self, sell, keep, trade):
+        self.Sell = sell
+        self.Keep = keep
+        self.Trade = trade
 
-            # get the path from where we are to the dest.
-            path = self.calculatePathPlus1(playerStatus, ptDest)
 
-            sendOrders(self, "move", path, pickup)
-        except Exception as e:
-            printrap ("somefin' bad, foo'!")
-            raise e
+class PlayerPlayTile(object):
+    def __init__(self, tile, created_hotel, merge_survivor):
+        self.Tile = tile
+        self.CreatedHotel = created_hotel
+        self.MergeSurvivor = merge_survivor
 
-    def calculatePathPlus1 (self, me, ptDest):
-        path = simpleAStar.calculatePath(self.gameMap, me.limo.tilePosition, ptDest)
-        # add in leaving the bus stop so it has orders while we get the message
-        # saying it got there and are deciding what to do next.
-        if len(path) > 1:
-            path.append(path[-2])
-        return path
 
-    def allPickups (self, me, passengers):
-            pickup = [p for p in passengers if (not p in me.passengersDelivered and
-                                                p != me.limo.passenger and
-                                                p.car is None and
-                                                p.lobby is not None and p.destination is not None)]
-            random.shuffle(pickup)
-            return pickup
+class PlayerTurn(PlayerPlayTile):
+    def __init__(self, tile, created_hotel, merge_survivor):
+        super(PlayerTurn, self).__init__(tile, created_hotel, merge_survivor)
+        self.Card = lib.SpecialPowers.NONE
+        self.Buy = []   # hotel stock list
+        self.Trade = []    # trade stock list
+
+
+class TradeStock(object):
+    def __init__(self, trade_in, get):
+        self.Trade = trade_in
+        self.Get = get
