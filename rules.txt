@@ -1,0 +1,14 @@
+General rules:
+Each player draws 1 tiles and places on board, closest to 1a goes first
+Start with 6 tiles
+Start with $6000
+Buy up to 3 shares of stock per turn (doesn't include what you already gained that turn)
+Must place a tile on the board every turn
+If a tile shares a spot on the board with a tile that doesn't have a corporation, a corporation is founded.
+
+Special powers:
+Buy 3 without paying money
+Buy 5 in a turn instead of 3
+3 trades where you trade 2 shares for 1
+Take 5 tiles
+Play 4 tiles
