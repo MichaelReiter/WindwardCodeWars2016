@@ -35,12 +35,20 @@ def chooseTileMove(create, expand, mergers, me, inactive):
 
 
 def chooseStockPurchases(options, hotelChains):
-    return [lib.HotelStock(findLargestCompany(hotelChains), 3)]
+    return findLargestCompany(hotelChains)
+
 
 def findLargestCompany(hotelChains):
-    max = hotelChains[0]
+    first = hotelChains[0]
+    second = hotelChains[0]
     for hotel in hotelChains:
-        if max.num_tiles < hotel.num_tiles:
-            max = hotel
+        if first.num_tiles < hotel.num_tiles and hotel.num_available_shares > 0:
+            if first.num_available_shares > 3 - hotel.num_available_shares:
+                second = first
+            first = hotel
 
-    return max
+    if first.num_available_shares < 3:
+        return [lib.HotelStock(first, first.num_available_shares),
+                lib.HotelStock(second, 3 - first.num_available_shares)]
+    else:
+        return [lib.HotelStock(first, 3)]
