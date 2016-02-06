@@ -54,10 +54,14 @@ class MyPlayerBrain(object):
         mergeSurvivor = next((hotel for hotel in hotelChains if hotel.is_active), None)
         return PlayerPlayTile(tile, createdHotel, mergeSurvivor)
 
-
     def QueryTileAndPurchase(self, map, me, hotelChains, players):
         inactive = next((hotel for hotel in hotelChains if not hotel.is_active), None)
-        turn = PlayerTurn(tile=random_element(me.tiles), created_hotel=inactive, merge_survivor=inactive)
+
+        #Determine what move to do on your turn
+        turn = PlayerTurn(tile=self.chooseTileMove(map, me, hotelChains),
+                          created_hotel=inactive, merge_survivor=inactive)
+
+        #Determine what stocks to buy
         turn.Buy.append(lib.HotelStock(random_element(hotelChains), rand.randint(1, 3)))
         turn.Buy.append(lib.HotelStock(random_element(hotelChains), rand.randint(1, 3)))
 
@@ -80,6 +84,50 @@ class MyPlayerBrain(object):
     def QueryMergeStock(self, map, me, hotelChains, players, survivor, defunct):
         myStock = next((stock for stock in me.stock if stock.chain == defunct.name), None)
         return PlayerMerge(myStock.num_shares / 3, myStock.num_shares / 3, (myStock.num_shares + 2) / 3)
+
+    def chooseTileMove(self, map, me, hotelChains):
+        create = []
+        expand = []
+        for i in xrange(map.height):
+            for j in xrange(map.width):
+                #If the tile is a single tile
+                if map.tiles[i][j].Type == map.tiles[i][j].SINGLE:
+                    #Check around it to see if we can place a tile
+                    if i > 0:
+                        if map.tiles[i - 1][j] in me.tiles:
+                            create.append(map.tiles[i - 1][j])
+                    if i < map.height:
+                        if map.tiles[i + 1][j] in me.tiles:
+                            create.append(map.tiles[i + 1][j])
+                    if j > 0:
+                        if map.tiles[i][j - 1] in me.tiles:
+                            create.append(map.tiles[i][j - 1])
+                    if j < map.width:
+                        if map.tiles[i][j + 1] in me.tiles:
+                            create.append(map.tiles[i][j + 1])
+                #If the tile is a hotel
+                if map.tiles[i][j].Type == map.tiles[i][j].HOTEL:
+                    #Check around it to see if we can place a tile
+                    if i > 0:
+                        if map.tiles[i - 1][j] in me.tiles:
+                            expand.append(map.tiles[i - 1][j])
+                    if i < map.height:
+                        if map.tiles[i + 1][j] in me.tiles:
+                            expand.append(map.tiles[i + 1][j])
+                    if j > 0:
+                        if map.tiles[i][j - 1] in me.tiles:
+                            expand.append(map.tiles[i][j - 1])
+                    if j < map.width:
+                        if map.tiles[i][j + 1] in me.tiles:
+                            expand.append(map.tiles[i][j + 1])
+
+        #Determine which move you want to use here
+        chosen = None
+
+        if chosen is None:
+            return random_element(me.tiles)
+        else:
+            return chosen
 
 
 class PlayerMerge(object):
