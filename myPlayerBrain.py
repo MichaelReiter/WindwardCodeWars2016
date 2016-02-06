@@ -156,9 +156,9 @@ class MyPlayerBrain(object):
 
         # This populates lists for which moves will create a company,
         # which moves will expand a company, and which moves will cause a merger.
-
-        for i in xrange(map.height):
-            for j in xrange(map.width):
+        print len(map.tiles), len(map.tiles[0]), map.height, map.width
+        for i in xrange(map.width):
+            for j in xrange(map.height):
                 if map.tiles[i][j] in me.tiles:  # if we have the tile in our hand
                     result = self.checkAdjacentTile(map, me, i, j)  # check adjacent tiles to see what it would result in
                     if result[1] == "hotel":
@@ -183,7 +183,7 @@ class MyPlayerBrain(object):
         # Create a list of hotel stocks that can be bought (are active) and the
         # currently owned shares. options = [[hotel, shares owned], ...]
         for hotel in hotelChains:
-            if hotel.is_active():
+            if hotel.is_active:
                 added = False
                 for stock in me.stock:
                     if stock.chain == hotel:
