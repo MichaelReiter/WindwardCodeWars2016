@@ -1,6 +1,6 @@
 # Team Guest
 # UVic 2016
-# Michael Reiter, Kurt Dorflinger, Juan Carlost Gallegos, Nicholas Kobald
+# Michael Reiter, Kurt Dorflinger, Juan Carlos Gallegos, Nicholas Kobald
 
 import random as rand
 import api.units as lib
@@ -89,7 +89,7 @@ class MyPlayerBrain(object):
 
     def checkAdjacentTile(self, map, me, i, j):
         #Possible outcomes: all empty, one+ single, one+ hotel
-        empty = 0
+        empty = 0   # these are the number of empty, single or hotels adjacent to the input tile (i, j)
         single = 0
         hotel = 0
 
@@ -155,8 +155,8 @@ class MyPlayerBrain(object):
 
         for i in xrange(map.height):
             for j in xrange(map.width):
-                if map.tiles[i][j] in me.tiles:
-                    result = self.checkAdjacentTile(map, me, i, j)
+                if map.tiles[i][j] in me.tiles:  # if we have the tile in our hand
+                    result = self.checkAdjacentTile(map, me, i, j)  # check adjacent tiles to see what it would result in
                     if result[1] == "hotel":
                         mergers.append([result, map.tiles[i][j], i, j])
                     elif result[1] == "single":
