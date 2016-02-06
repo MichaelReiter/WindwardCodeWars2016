@@ -169,10 +169,10 @@ class MyPlayerBrain(object):
                         expand.append([map.tiles[i][j], i, j])
 
         #Determine which move you want to use here
-        chosen = logic.chooseTileMove(create, expand, mergers)
+        inactive = next((hotel for hotel in hotelChains if not hotel.is_active), None)
+        chosen = logic.chooseTileMove(create, expand, mergers, inactive)
 
         if chosen is None:
-            inactive = next((hotel for hotel in hotelChains if not hotel.is_active), None)
             return [random_element(me.tiles), inactive, inactive]
         else:
             return chosen
