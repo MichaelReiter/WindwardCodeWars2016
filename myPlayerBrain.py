@@ -11,6 +11,7 @@ import logic
 NAME = "Team Guest"
 SCHOOL = "University of Victoria"
 
+turn_count = 0
 
 def random_element(list):
     if len(list) < 1:
@@ -44,7 +45,7 @@ class MyPlayerBrain(object):
         pass  # any setup code...
 
     def QuerySpecialPowersBeforeTurn(self, map, me, hotelChains, players):
-        if rand.randint(0, 29) == 1:
+        if turn_count == 1:
             return SpecialPowers.DRAW_5_TILES
         if rand.randint(0, 29) == 1:
             return SpecialPowers.PLACE_4_TILES
@@ -57,6 +58,8 @@ class MyPlayerBrain(object):
         return PlayerPlayTile(tile, createdHotel, mergeSurvivor)
 
     def QueryTileAndPurchase(self, map, me, hotelChains, players):
+        turn_count += 1
+
         #inactive = next((hotel for hotel in hotelChains if not hotel.is_active), None)
 
         #Determine what move to do on your turn
@@ -68,24 +71,34 @@ class MyPlayerBrain(object):
         #Determine what stocks to buy
         turn.Buy.extend(self.chooseStockPurchases(me, hotelChains, 3))
 
-        # Choose whether or not to end turn
-        if rand.randint(0, 20) is not 1:
-            return turn
-
-        # Choose which special card to use
-        temp_rand = rand.randint(0, 2)
-        if temp_rand is 0:
-            turn.Card = SpecialPowers.BUY_5_STOCK
-            turn.Buy.append(lib.HotelStock(random_element(hotelChains), 3))
-            return turn
-        elif temp_rand is 1:
+        # Use our super powers
+        if turn_count == 5:
             turn.Card = SpecialPowers.FREE_3_STOCK
             return turn
-        else:
-            if (len(me.stock) > 0):
-                turn.Card = SpecialPowers.TRADE_2_STOCK
-                turn.Trade.append(TradeStock(random_element(me.stock).chain, random_element(hotelChains)))
-                return turn
+
+        # if turn_count == 15:
+        #     turn.Card = SpecialPowers.TRADE_2_STOCK
+        #     turn.Trade.append(TradeStock(logic.findOurMinStock(me.stock).chain, random_element(hotelChains)))
+        #     return turn
+
+        # # Choose whether or not to end turn
+        # if rand.randint(0, 20) is not 1:
+        #     return turn
+
+        # # Choose which special card to use
+        # temp_rand = rand.randint(0, 1)
+        # if temp_rand is 0:
+        #     turn.Card = SpecialPowers.BUY_5_STOCK
+        #     turn.Buy.append(lib.HotelStock(random_element(hotelChains), 3))
+        #     return turn
+        # # elif temp_rand is 1:
+        # #     turn.Card = SpecialPowers.FREE_3_STOCK
+        # #     return turn
+        # else:
+        #     if (len(me.stock) > 0):
+        #         turn.Card = SpecialPowers.TRADE_2_STOCK
+        #         turn.Trade.append(TradeStock(random_element(me.stock).chain, random_element(hotelChains)))
+        #         return turn
 
     def QueryMergeStock(self, map, me, hotelChains, players, survivor, defunct):
         myStock = next((stock for stock in me.stock if stock.chain == defunct.name), None)
