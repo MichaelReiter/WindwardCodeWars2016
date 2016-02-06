@@ -29,7 +29,7 @@ class MyPlayerBrain(object):
             #The player's avatar (looks in the same directory that this module is in).
             #Must be a 32 x 32 PNG file.
         try:
-            avatar = open("avatar.png", "rb")
+            avatar = open("avatar.jpg", "rb")
             avatar_str = b''
             for line in avatar:
                 avatar_str += line
