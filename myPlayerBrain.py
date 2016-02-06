@@ -102,7 +102,13 @@ class MyPlayerBrain(object):
 
     def QueryMergeStock(self, map, me, hotelChains, players, survivor, defunct):
         myStock = next((stock for stock in me.stock if stock.chain == defunct.name), None)
-        return PlayerMerge(myStock.num_shares / 3, myStock.num_shares / 3, (myStock.num_shares + 2) / 3)
+        trade = myStock.num_shares / 3
+        if trade % 2 != 0:
+            trade += 1
+        sell = myStock.num_shares - trade
+        print "\n\t", myStock.num_shares, "total, selling:", sell, "trading:", trade, "\n"
+
+        return PlayerMerge(sell, 0, trade)
 
     def checkAdjacentTile(self, map, me, i, j):
         #Possible outcomes: all empty, one+ single, one+ hotel
@@ -169,7 +175,6 @@ class MyPlayerBrain(object):
 
         # This populates lists for which moves will create a company,
         # which moves will expand a company, and which moves will cause a merger.
-        print len(map.tiles), len(map.tiles[0]), map.height, map.width
         for i in xrange(map.width):
             for j in xrange(map.height):
                 if map.tiles[i][j] in me.tiles:  # if we have the tile in our hand
@@ -210,8 +215,10 @@ class MyPlayerBrain(object):
         buyList = logic.chooseStockPurchases(options, hotelChains)
 
         if buyList is None:
+            print "Randoming stock..."
             return [lib.HotelStock(random_element(hotelChains), rand.randint(1, 4))]
         else:
+            print "Buying: ", buyList
             return buyList
 
 
