@@ -57,18 +57,22 @@ class MyPlayerBrain(object):
         return PlayerPlayTile(tile, createdHotel, mergeSurvivor)
 
     def QueryTileAndPurchase(self, map, me, hotelChains, players):
-        inactive = next((hotel for hotel in hotelChains if not hotel.is_active), None)
+        #inactive = next((hotel for hotel in hotelChains if not hotel.is_active), None)
 
         #Determine what move to do on your turn
-        turn = PlayerTurn(tile=self.chooseTileMove(map, me, hotelChains),
-                          created_hotel=inactive, merge_survivor=inactive)
+        #choice = [tile, created_hotel, merge_survivor]
+        choice = self.chooseTileMove(map, me, hotelChains)
+        turn = PlayerTurn(tile=choice[0],
+                          created_hotel=choice[1], merge_survivor=choice[2])
 
         #Determine what stocks to buy
-        turn.Buy.append(lib.HotelStock(random_element(hotelChains), rand.randint(1, 3)))
-        turn.Buy.append(lib.HotelStock(random_element(hotelChains), rand.randint(1, 3)))
+        turn.Buy.extend(self.chooseStockPurchases(me, hotelChains, 3))
 
+        # Choose whether or not to end turn
         if rand.randint(0, 20) is not 1:
             return turn
+
+        # Choose which special card to use
         temp_rand = rand.randint(0, 2)
         if temp_rand is 0:
             turn.Card = SpecialPowers.BUY_5_STOCK
@@ -168,12 +172,34 @@ class MyPlayerBrain(object):
         chosen = logic.chooseTileMove(create, expand, mergers)
 
         if chosen is None:
-            return random_element(me.tiles)
+            inactive = next((hotel for hotel in hotelChains if not hotel.is_active), None)
+            return [random_element(me.tiles), inactive, inactive]
         else:
             return chosen
 
     def chooseStockPurchases(self, me, hotelChains, stockCount):
-        return None
+        options = []
+
+        # Create a list of hotel stocks that can be bought (are active) and the
+        # currently owned shares. options = [[hotel, shares owned], ...]
+        for hotel in hotelChains:
+            if hotel.is_active():
+                added = False
+                for stock in me.stock:
+                    if stock.chain == hotel:
+                        added = True
+                        options.append([hotel, stock.num_shares])
+                        break
+                if not added:
+                    options.append([hotel, 0])
+
+        # Expects a list in the form of [lib.HotelStock(hotel, purchase amount), ...]
+        buyList = logic.chooseStockPurchases(options)
+
+        if buyList is None:
+            return [lib.HotelStock(random_element(hotelChains), rand.randint(1, 4))]
+        else:
+            return buyList
 
 
 class PlayerMerge(object):
