@@ -54,10 +54,14 @@ class MyPlayerBrain(object):
         mergeSurvivor = next((hotel for hotel in hotelChains if hotel.is_active), None)
         return PlayerPlayTile(tile, createdHotel, mergeSurvivor)
 
-
     def QueryTileAndPurchase(self, map, me, hotelChains, players):
         inactive = next((hotel for hotel in hotelChains if not hotel.is_active), None)
-        turn = PlayerTurn(tile=random_element(me.tiles), created_hotel=inactive, merge_survivor=inactive)
+
+        #Determine what move to do on your turn
+        turn = PlayerTurn(tile=self.chooseTileMove(map, me, hotelChains),
+                          created_hotel=inactive, merge_survivor=inactive)
+
+        #Determine what stocks to buy
         turn.Buy.append(lib.HotelStock(random_element(hotelChains), rand.randint(1, 3)))
         turn.Buy.append(lib.HotelStock(random_element(hotelChains), rand.randint(1, 3)))
 
@@ -80,6 +84,88 @@ class MyPlayerBrain(object):
     def QueryMergeStock(self, map, me, hotelChains, players, survivor, defunct):
         myStock = next((stock for stock in me.stock if stock.chain == defunct.name), None)
         return PlayerMerge(myStock.num_shares / 3, myStock.num_shares / 3, (myStock.num_shares + 2) / 3)
+
+    def checkAdjacentTile(self, map, me, i, j):
+        #Possible outcomes: all empty, one+ single, one+ hotel
+        empty = 0
+        single = 0
+        hotel = 0
+
+        merging = []
+        creating = []
+
+        #For every adjacent tile, check if it is either empty, single or hotel
+        if i > 0:
+            curr = map.tiles[i - 1][j]
+            if curr.Type == curr.SINGLE:
+                single += 1
+                creating.append(map.tiles[i - 1][j])
+            elif curr.Type == curr.HOTEL:
+                hotel += 1
+                merging.append((curr, curr.hotel))
+            elif curr.Type == curr.UNDEVELOPED:
+                empty += 1
+        if i < map.height:
+            curr = map.tiles[i + 1][j]
+            if curr.Type == curr.SINGLE:
+                single += 1
+                creating.append(map.tiles[i + 1][j])
+            elif curr.Type == curr.HOTEL:
+                hotel += 1
+                merging.append((curr, curr.hotel))
+            elif curr.Type == curr.UNDEVELOPED:
+                empty += 1
+        if j > 0:
+            curr = map.tiles[i][j - 1]
+            if curr.Type == curr.SINGLE:
+                single += 1
+                creating.append(map.tiles[i][j - 1])
+            elif curr.Type == curr.HOTEL:
+                hotel += 1
+                merging.append((curr, curr.hotel))
+            elif curr.Type == curr.UNDEVELOPED:
+                empty += 1
+        if j < map.width:
+            curr = map.tiles[i][j + 1]
+            if curr.Type == curr.SINGLE:
+                single += 1
+                creating.append(map.tiles[i][j + 1])
+            elif curr.Type == curr.HOTEL:
+                hotel += 1
+                merging.append((curr, curr.hotel))
+            elif curr.Type == curr.UNDEVELOPED:
+                empty += 1
+
+        if hotel > 0:
+            return [hotel + single, "hotel", merging]
+        elif single > 0:
+            return [single, "single", creating]
+        else:
+            return [0, "empty"]
+
+    def chooseTileMove(self, map, me, hotelChains):
+        create = []
+        expand = []
+        mergers = []
+
+        for i in xrange(map.height):
+            for j in xrange(map.width):
+                if map.tiles[i][j] in me.tiles:
+                    result = self.checkAdjacentTile(map, me, i, j)
+                    if result[1] == "hotel":
+                        mergers.append([result, map.tiles[i][j], i, j])
+                    elif result[1] == "single":
+                        create.append([result, map.tiles[i][j], i, j])
+                    else:
+                        expand.append([map.tiles[i][j], i, j])
+
+        #Determine which move you want to use here
+        chosen = None
+
+        if chosen is None:
+            return random_element(me.tiles)
+        else:
+            return chosen
 
 
 class PlayerMerge(object):
