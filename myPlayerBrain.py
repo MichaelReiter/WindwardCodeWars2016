@@ -170,7 +170,7 @@ class MyPlayerBrain(object):
 
         #Determine which move you want to use here
         inactive = next((hotel for hotel in hotelChains if not hotel.is_active), None)
-        chosen = logic.chooseTileMove(create, expand, mergers, inactive)
+        chosen = logic.chooseTileMove(create, expand, mergers, me, inactive)
 
         if chosen is None:
             return [random_element(me.tiles), inactive, inactive]
@@ -194,7 +194,7 @@ class MyPlayerBrain(object):
                     options.append([hotel, 0])
 
         # Expects a list in the form of [lib.HotelStock(hotel, purchase amount), ...]
-        buyList = logic.chooseStockPurchases(options)
+        buyList = logic.chooseStockPurchases(options, hotelChains)
 
         if buyList is None:
             return [lib.HotelStock(random_element(hotelChains), rand.randint(1, 4))]
