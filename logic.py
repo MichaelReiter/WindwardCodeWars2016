@@ -41,17 +41,24 @@ def chooseStockPurchases(options, hotelChains, stockCount):
 def findLargestCompany(hotelChains, stockCount):
     first = hotelChains[0]
     second = hotelChains[0]
-    for hotel in hotelChains:
-        if first.num_tiles < hotel.num_tiles and hotel.num_available_shares > stockCount - 3:
-            if first.num_available_shares > stockCount - hotel.num_available_shares:
-                second = first
-            first = hotel
 
-    if first.num_available_shares < stockCount:
-        return [lib.HotelStock(first, first.num_available_shares),
-                lib.HotelStock(second, stockCount - first.num_available_shares)]
-    else:
-        return [lib.HotelStock(first, stockCount)]
+    hotels = []
+    for hotel in hotelChains:
+        hotels.append([hotel, hotel.num_tiles, hotel.num_available_shares])
+
+    hotels = sorted(hotels, key=lambda x: x[1])
+    total = 0
+    buyList = []
+    for hotel in hotels[::-1]:
+        print hotel[1],
+        if hotel[0].num_available_shares + total >= stockCount:
+            print "\n\t\t", "Buying", stockCount - total, "of", hotel[0].name, "\n\n"
+            buyList.append(lib.HotelStock(hotel[0], stockCount - total))
+            return buyList
+        else:
+            print "\n\t\t", "Buying", hotel[0].num_available_shares, "of", hotel[0].name, "\n\n"
+            buyList.append(lib.HotelStock(hotel[0], hotel[0].num_available_shares))
+            total += hotel[0].num_available_shares
 
 def findOurMinStock(stocks):
     min = stocks[0]
