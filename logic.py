@@ -25,19 +25,7 @@ def chooseTileMove(create, expand, mergers, me, inactive):
 
     # if we have a tile that can create a merger, pick it
     if len(mergers) > 0:
-        # examine each possible merger
-        # for merge in mergers:
-        #     if len(merge[0][2]) > 1:
-        #         # we want to know if we would benefit from the merger
-        #         # find largest company
-        #         largest = merge[0][2][0]    # this is a tuple
-                
-        #         for move in merge[0][2]:
-        #             hotel = move[1]
-
-
         return [mergers[0][1], inactive, inactive]
-
     elif len(create) > 0:
         return [create[0][1], inactive, inactive]
     elif len(expand) > 0:
@@ -46,24 +34,24 @@ def chooseTileMove(create, expand, mergers, me, inactive):
         return [random_element(me.tiles), inactive, inactive]
 
 
-def chooseStockPurchases(options, hotelChains):
+def chooseStockPurchases(options, hotelChains, stockCount):
     return findLargestCompany(hotelChains)
 
 
-def findLargestCompany(hotelChains):
+def findLargestCompany(hotelChains, stockCount):
     first = hotelChains[0]
     second = hotelChains[0]
     for hotel in hotelChains:
-        if first.num_tiles < hotel.num_tiles and hotel.num_available_shares > 0:
-            if first.num_available_shares > 3 - hotel.num_available_shares:
+        if first.num_tiles < hotel.num_tiles and hotel.num_available_shares > stockCount - 3:
+            if first.num_available_shares > stockCount - hotel.num_available_shares:
                 second = first
             first = hotel
 
-    if first.num_available_shares < 3:
+    if first.num_available_shares < stockCount:
         return [lib.HotelStock(first, first.num_available_shares),
-                lib.HotelStock(second, 3 - first.num_available_shares)]
+                lib.HotelStock(second, stockCount - first.num_available_shares)]
     else:
-        return [lib.HotelStock(first, 3)]
+        return [lib.HotelStock(first, stockCount)]
 
 def findOurMinStock(stocks):
     min = stocks[0]
