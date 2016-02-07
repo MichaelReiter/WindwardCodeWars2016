@@ -144,6 +144,7 @@ class Framework(object):
                     reply.set( "trade", str(move.Trade))
 
             elif name == 'setup':
+                print "\n\n", "----------------------------------", "\n\n"
                 self.brain.Setup(map, me, hotels, players)
                 reply = ET.Element('ready')
 

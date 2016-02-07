@@ -76,7 +76,7 @@ class MapTile(object):
 
     def __init__(self, type, hotel=None, element=None):
         self.hotel = hotel
-        self.type = type
+        self.Type = type
         if type is None and hotel is None:
             self.type = MapTile.UNDEVELOPED
 

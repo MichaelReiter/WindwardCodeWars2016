@@ -43,10 +43,11 @@ class MyPlayerBrain(object):
 
     def Setup(self, map, me, hotelChains, players):
         self.turn_count = 0
-        self.tradeUsed = False
+        self.drawUsed = False
 
     def QuerySpecialPowersBeforeTurn(self, map, me, hotelChains, players):
-        if self.turn_count == 1:
+        if (self.turn_count == 0 or self.turn_count == 1) and self.drawUsed == False:
+            self.drawUsed = True
             return SpecialPowers.DRAW_5_TILES
         if rand.randint(0, 29) == 1:
             return SpecialPowers.PLACE_4_TILES
@@ -101,9 +102,12 @@ class MyPlayerBrain(object):
         merging = []
         creating = []
 
+        print i, j,
+
         #For every adjacent tile, check if it is either empty, single or hotel
         if i > 0:
             curr = map.tiles[i - 1][j]
+            print "\t\t", curr.SINGLE
             if curr.Type == curr.SINGLE:
                 single += 1
                 creating.append(map.tiles[i - 1][j])
@@ -112,7 +116,7 @@ class MyPlayerBrain(object):
                 merging.append((curr, curr.hotel))
             elif curr.Type == curr.UNDEVELOPED:
                 empty += 1
-        if i < map.height - 1:
+        if i < map.width - 1:
             curr = map.tiles[i + 1][j]
             if curr.Type == curr.SINGLE:
                 single += 1
@@ -132,7 +136,7 @@ class MyPlayerBrain(object):
                 merging.append((curr, curr.hotel))
             elif curr.Type == curr.UNDEVELOPED:
                 empty += 1
-        if j < map.width - 1:
+        if j < map.height - 1:
             curr = map.tiles[i][j + 1]
             if curr.Type == curr.SINGLE:
                 single += 1
@@ -159,14 +163,16 @@ class MyPlayerBrain(object):
         # which moves will expand a company, and which moves will cause a merger.
         for i in xrange(map.width):
             for j in xrange(map.height):
-                if map.tiles[i][j] in me.tiles:  # if we have the tile in our hand
-                    result = self.checkAdjacentTile(map, me, i, j)  # check adjacent tiles to see what it would result in
-                    if result[1] == "hotel":
-                        mergers.append([result, map.tiles[i][j], i, j])
-                    elif result[1] == "single":
-                        create.append([result, map.tiles[i][j], i, j])
-                    else:
-                        expand.append([map.tiles[i][j], i, j])
+                for tile in me.tiles:
+                    if i == tile.x and j == tile.y:
+                        print "\t\t", True
+                        result = self.checkAdjacentTile(map, me, i, j)  # check adjacent tiles to see what it would result in
+                        if result[1] == "hotel":
+                            mergers.append([result, map.tiles[i][j], i, j])
+                        elif result[1] == "single":
+                            create.append([result, map.tiles[i][j], i, j])
+                        else:
+                            expand.append([map.tiles[i][j], i, j])
 
         #Determine which move you want to use here
         inactive = next((hotel for hotel in hotelChains if not hotel.is_active), None)
