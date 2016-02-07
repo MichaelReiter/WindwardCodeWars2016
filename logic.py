@@ -38,10 +38,6 @@ def chooseTileMove(create, expand, mergers, me, inactive):
         i = rand.randint(0, len(mergers) - 1)
         #print "\t", "Merging companies."
         return [search(mergers[i][2], mergers[i][3], me), inactive, inactive]
-    elif len(create) > 0:
-        i = rand.randint(0, len(create) - 1)
-        #print "\t", "Creating company."
-        return [search(create[i][2], create[i][3], me), inactive, inactive]
     elif len(expand) > 0:
         i = rand.randint(0, len(expand) - 1)
         #print "\t", "Adding lone block."

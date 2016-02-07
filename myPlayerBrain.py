@@ -199,10 +199,8 @@ class MyPlayerBrain(object):
         buyList = logic.chooseStockPurchases(options, hotelChains, stockCount)
 
         if buyList is None:
-            print "Randoming stock..."
             return [lib.HotelStock(random_element(hotelChains), rand.randint(1, 4))]
         else:
-            print "Buying: ", buyList
             return buyList
 
 
