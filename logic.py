@@ -35,7 +35,7 @@ def chooseTileMove(create, expand, mergers, me, inactive):
 
 
 def chooseStockPurchases(options, hotelChains, stockCount):
-    return findLargestCompany(hotelChains)
+    return findLargestCompany(hotelChains, stockCount)
 
 
 def findLargestCompany(hotelChains, stockCount):
