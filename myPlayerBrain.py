@@ -49,8 +49,6 @@ class MyPlayerBrain(object):
         if (self.turn_count == 0 or self.turn_count == 1) and self.drawUsed == False:
             self.drawUsed = True
             return SpecialPowers.DRAW_5_TILES
-        if rand.randint(0, 29) == 1:
-            return SpecialPowers.PLACE_4_TILES
         return SpecialPowers.NONE
 
     def QueryTileOnly(self, map, me, hotelChains, players):
@@ -89,7 +87,7 @@ class MyPlayerBrain(object):
         if trade % 2 != 0:
             trade += 1
         sell = myStock.num_shares - trade
-        print "\n\t", myStock.num_shares, "total, selling:", sell, "trading:", trade, "\n"
+        #print "\n\t", myStock.num_shares, "total, selling:", sell, "trading:", trade, "\n"
 
         return PlayerMerge(sell, 0, trade)
 
@@ -107,7 +105,6 @@ class MyPlayerBrain(object):
         #For every adjacent tile, check if it is either empty, single or hotel
         if i > 0:
             curr = map.tiles[i - 1][j]
-            print "\t\t", curr.SINGLE
             if curr.Type == curr.SINGLE:
                 single += 1
                 creating.append(map.tiles[i - 1][j])
@@ -165,7 +162,7 @@ class MyPlayerBrain(object):
             for j in xrange(map.height):
                 for tile in me.tiles:
                     if i == tile.x and j == tile.y:
-                        print "\t\t", True
+                        #print "\t\t", True
                         result = self.checkAdjacentTile(map, me, i, j)  # check adjacent tiles to see what it would result in
                         if result[1] == "hotel":
                             mergers.append([result, map.tiles[i][j], i, j])
@@ -177,7 +174,6 @@ class MyPlayerBrain(object):
         #Determine which move you want to use here
         inactive = next((hotel for hotel in hotelChains if not hotel.is_active), None)
         chosen = logic.chooseTileMove(create, expand, mergers, me, inactive)
-
         if chosen is None:
             return [random_element(me.tiles), inactive, inactive]
         else:

@@ -30,20 +30,24 @@ def chooseTileMove(create, expand, mergers, me, inactive):
     #     hotel[1]
 
     # if we have a tile that can create a merger, pick it
-    if len(mergers) > 0:
+    if len(create) > 0:
+        i = rand.randint(0, len(create) - 1)
+        #print "\t", "Creating company."
+        return [search(create[i][2], create[i][3], me), inactive, inactive]
+    elif len(mergers) > 0:
         i = rand.randint(0, len(mergers) - 1)
-        print "\t", "Merging companies."
+        #print "\t", "Merging companies."
         return [search(mergers[i][2], mergers[i][3], me), inactive, inactive]
     elif len(create) > 0:
         i = rand.randint(0, len(create) - 1)
-        print "\t", "Creating company."
+        #print "\t", "Creating company."
         return [search(create[i][2], create[i][3], me), inactive, inactive]
     elif len(expand) > 0:
         i = rand.randint(0, len(expand) - 1)
-        print "\t", "Adding lone block."
+        #print "\t", "Adding lone block."
         return [search(expand[i][1], expand[i][2], me), inactive, inactive]
     else:
-        print "\t", "Randoming..."
+        #print "\t", "Randoming..."
         return [random_element(me.tiles), inactive, inactive]
 
 
@@ -63,17 +67,17 @@ def findLargestCompany(hotelChains, stockCount):
     total = 0
     buyList = []
     for hotel in hotels[::-1]:
-        print hotel[1],
+        #print hotel[1],
         if hotel[0].num_tiles > 0:
             if hotel[0].num_available_shares + total >= stockCount:
-                print "\n\t\t", "Buying", stockCount - total, "of", hotel[0].name, "\n\n"
+                #print "\n\t\t", "Buying", stockCount - total, "of", hotel[0].name, "\n\n"
                 buyList.append(lib.HotelStock(hotel[0], stockCount - total))
                 return buyList
             else:
-                print "\n\t\t", "Buying", hotel[0].num_available_shares, "of", hotel[0].name, "\n\n"
+                #print "\n\t\t", "Buying", hotel[0].num_available_shares, "of", hotel[0].name, "\n\n"
                 buyList.append(lib.HotelStock(hotel[0], hotel[0].num_available_shares))
                 total += hotel[0].num_available_shares
-    print "\n\t\t", "Can't buy anything of use...", "\n\n"
+    #print "\n\t\t", "Can't buy anything of use...", "\n\n"
     return [lib.HotelStock(hotels[0][0], 0)]
 
 def findOurMinStock(stocks):

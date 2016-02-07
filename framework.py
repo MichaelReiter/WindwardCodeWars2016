@@ -109,6 +109,8 @@ class Framework(object):
                         reply.set("created-hotel",move.CreatedHotel.name)
                     if move.MergeSurvivor is not None:
                         reply.set("merge-survivor", move.MergeSurvivor.name)
+                    if move.Card is not None:
+                        reply.set("card", move.Card)
 
                     trade_string = ''.join(["{}:{};".format(stock.Trade, stock.Get) for stock in move.Trade])
                     if len(trade_string) > 0:
