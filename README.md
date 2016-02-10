@@ -1,7 +1,7 @@
 # WindwardCodeWars2016
 A hackathon where teams from top universities compete to analyze a problem and write the best AI.
 This year, we wrote an AI to play the board game Acquire.
-Our team took first place at the University of Victoria and second place in the international final competition.
+Our team took first place at the University of Victoria and [second place in the international final competition](https://www.youtube.com/watch?v=-T0ChmSjwyA).
 
 [Check out the website for further details.](http://www.windward.net/code-war/)
 
