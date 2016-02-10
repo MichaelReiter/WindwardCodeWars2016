@@ -17,33 +17,27 @@ def random_element(list):
 
 
 def search(i, j, me):
+    #Find the PlayerTile associated with a given i,j on the game board
     for tile in me.tiles:
         if i == tile.x and j == tile.y:
             return tile
 
 
 def chooseTileMove(create, expand, mergers, me, inactive):
-
-    # for merge in mergers:
-    #   # mergers.0result.2merging.
-    #   for hotel in mergers[0][2]:
-    #     hotel[1]
-
-    # if we have a tile that can create a merger, pick it
+    # If we have tiles that can create a company, then randomly pick one
     if len(create) > 0:
         i = rand.randint(0, len(create) - 1)
-        #print "\t", "Creating company."
         return [search(create[i][2], create[i][3], me), inactive, inactive]
+    # Try to merge companies next or grow one if we have a tile to do so
     elif len(mergers) > 0:
         i = rand.randint(0, len(mergers) - 1)
-        #print "\t", "Merging companies."
         return [search(mergers[i][2], mergers[i][3], me), inactive, inactive]
+    # Otherwise add a lone block
     elif len(expand) > 0:
         i = rand.randint(0, len(expand) - 1)
-        #print "\t", "Adding lone block."
         return [search(expand[i][1], expand[i][2], me), inactive, inactive]
+    # Random from the tiles if no player tiles match
     else:
-        #print "\t", "Randoming..."
         return [random_element(me.tiles), inactive, inactive]
 
 
@@ -52,33 +46,25 @@ def chooseStockPurchases(options, hotelChains, stockCount):
 
 
 def findLargestCompany(hotelChains, stockCount):
-    first = hotelChains[0]
-    second = hotelChains[0]
-
     hotels = []
     for hotel in hotelChains:
         hotels.append([hotel, hotel.num_tiles, hotel.num_available_shares])
 
+    # Sort hotels by number of tiles
     hotels = sorted(hotels, key=lambda x: x[1])
     total = 0
     buyList = []
+
+    # Invest as much as possible in the largest hotel
     for hotel in hotels[::-1]:
-        #print hotel[1],
+        # Only invest in existing hotels
         if hotel[0].num_tiles > 0:
+            # Check to see if we have invested in the max amount of stocks and stop investing
             if hotel[0].num_available_shares + total >= stockCount:
-                #print "\n\t\t", "Buying", stockCount - total, "of", hotel[0].name, "\n\n"
                 buyList.append(lib.HotelStock(hotel[0], stockCount - total))
                 return buyList
+            # Otherwise invest if possible
             else:
-                #print "\n\t\t", "Buying", hotel[0].num_available_shares, "of", hotel[0].name, "\n\n"
                 buyList.append(lib.HotelStock(hotel[0], hotel[0].num_available_shares))
                 total += hotel[0].num_available_shares
-    #print "\n\t\t", "Can't buy anything of use...", "\n\n"
     return [lib.HotelStock(hotels[0][0], 0)]
-
-def findOurMinStock(stocks):
-    min = stocks[0]
-    for stock in stocks:
-        if min.num_tiles > stock.num_tiles:
-            min = stock
-    return min

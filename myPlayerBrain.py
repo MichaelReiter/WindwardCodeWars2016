@@ -11,7 +11,6 @@ import logic
 NAME = "Team Guest"
 SCHOOL = "University of Victoria"
 
-#turn_count = 0
 
 def random_element(list):
     if len(list) < 1:
@@ -46,7 +45,7 @@ class MyPlayerBrain(object):
         self.drawUsed = False
 
     def QuerySpecialPowersBeforeTurn(self, map, me, hotelChains, players):
-        if (self.turn_count == 0 or self.turn_count == 1) and self.drawUsed == False:
+        if (self.turn_count == 0 or self.turn_count == 1) and not self.drawUsed:
             self.drawUsed = True
             return SpecialPowers.DRAW_5_TILES
         return SpecialPowers.NONE
@@ -60,19 +59,17 @@ class MyPlayerBrain(object):
     def QueryTileAndPurchase(self, map, me, hotelChains, players):
         self.turn_count += 1
 
-        #inactive = next((hotel for hotel in hotelChains if not hotel.is_active), None)
-
-        #Determine what move to do on your turn
-        #choice = [tile, created_hotel, merge_survivor]
+        # Determine what move to do on your turn
         choice = self.chooseTileMove(map, me, hotelChains)
         turn = PlayerTurn(tile=choice[0],
                           created_hotel=choice[1], merge_survivor=choice[2])
 
+        # Buy stocks, if on turn 6 buy 5
         if self.turn_count == 6:
             turn.Card = SpecialPowers.BUY_5_STOCK
             turn.Buy.extend(self.chooseStockPurchases(me, hotelChains, 5))
         else:
-            #Determine what stocks to buy
+            # Determine what stocks to buy
             turn.Buy.extend(self.chooseStockPurchases(me, hotelChains, 3))
 
         # Use our super powers
@@ -84,25 +81,25 @@ class MyPlayerBrain(object):
     def QueryMergeStock(self, map, me, hotelChains, players, survivor, defunct):
         myStock = next((stock for stock in me.stock if stock.chain == defunct.name), None)
         trade = myStock.num_shares / 3
+
         if trade % 2 != 0:
             trade += 1
         sell = myStock.num_shares - trade
-        #print "\n\t", myStock.num_shares, "total, selling:", sell, "trading:", trade, "\n"
 
         return PlayerMerge(sell, 0, trade)
 
     def checkAdjacentTile(self, map, me, i, j):
-        #Possible outcomes: all empty, one+ single, one+ hotel
-        empty = 0   # these are the number of empty, single or hotels adjacent to the input tile (i, j)
+        # Possible outcomes: all empty, one+ single, one+ hotel
+        # These are the number of empty, single or hotels adjacent to the input tile (i, j)
+        empty = 0
         single = 0
         hotel = 0
 
         merging = []
         creating = []
 
-        print i, j,
-
-        #For every adjacent tile, check if it is either empty, single or hotel
+        # For every adjacent tile, check if it is either empty, single or hotel
+        # Check to the left of the current tile
         if i > 0:
             curr = map.tiles[i - 1][j]
             if curr.Type == curr.SINGLE:
@@ -113,6 +110,8 @@ class MyPlayerBrain(object):
                 merging.append((curr, curr.hotel))
             elif curr.Type == curr.UNDEVELOPED:
                 empty += 1
+
+        # Check to the right of the current tile
         if i < map.width - 1:
             curr = map.tiles[i + 1][j]
             if curr.Type == curr.SINGLE:
@@ -123,6 +122,8 @@ class MyPlayerBrain(object):
                 merging.append((curr, curr.hotel))
             elif curr.Type == curr.UNDEVELOPED:
                 empty += 1
+
+        # Check above the current tile
         if j > 0:
             curr = map.tiles[i][j - 1]
             if curr.Type == curr.SINGLE:
@@ -133,6 +134,8 @@ class MyPlayerBrain(object):
                 merging.append((curr, curr.hotel))
             elif curr.Type == curr.UNDEVELOPED:
                 empty += 1
+
+        # Check below the current tile
         if j < map.height - 1:
             curr = map.tiles[i][j + 1]
             if curr.Type == curr.SINGLE:
@@ -144,10 +147,13 @@ class MyPlayerBrain(object):
             elif curr.Type == curr.UNDEVELOPED:
                 empty += 1
 
+        # If there are hotels adjacent
         if hotel > 0:
             return [hotel + single, "hotel", merging]
+        # If there are single hotel tiles adjacent
         elif single > 0:
             return [single, "single", creating]
+        # Otherwise there are no tiles adjacent
         else:
             return [0, "empty"]
 
@@ -162,8 +168,8 @@ class MyPlayerBrain(object):
             for j in xrange(map.height):
                 for tile in me.tiles:
                     if i == tile.x and j == tile.y:
-                        #print "\t\t", True
-                        result = self.checkAdjacentTile(map, me, i, j)  # check adjacent tiles to see what it would result in
+                        # Check adjacent tiles to see what it would result in
+                        result = self.checkAdjacentTile(map, me, i, j)
                         if result[1] == "hotel":
                             mergers.append([result, map.tiles[i][j], i, j])
                         elif result[1] == "single":
@@ -171,7 +177,7 @@ class MyPlayerBrain(object):
                         else:
                             expand.append([map.tiles[i][j], i, j])
 
-        #Determine which move you want to use here
+        # Determine which move you want to use here
         inactive = next((hotel for hotel in hotelChains if not hotel.is_active), None)
         chosen = logic.chooseTileMove(create, expand, mergers, me, inactive)
         if chosen is None:
